@@ -282,6 +282,7 @@ def parse_input(grammar, input, get_resolved_entities=False):
             apply_lexical_rules(grammar, chart, tokens, i, j)
             apply_binary_rules(grammar, chart, i, j)
             apply_unary_rules(grammar, chart, i, j)
+    # print_chart(chart)
     parses = chart[(0, len(tokens))]
     if grammar.start_symbol:
         parses = [parse for parse in parses if parse.rule.lhs == grammar.start_symbol]
