@@ -8,7 +8,7 @@ __email__ = "See the author's website"
 
 from collections import defaultdict
 
-from parsing import Parse
+from sippycup.parsing import Parse
 
 # TODO: annotations are generating rule features -- they shouldn't.
 def rule_features(parse):
@@ -44,10 +44,19 @@ class Model:
         self.executor = executor
 
     # TODO: Should this become a static function, to match style of parsing.py?
-    def parse_input(self, input):
-        parses = self.grammar.parse_input(input)
+    def parse_input(self, input, get_chart=False):
+        if get_chart:
+            parses, chart = self.grammar.parse_input(input, get_chart=get_chart)
+        else:
+            parses = self.grammar.parse_input(input, get_chart=get_chart)
+
         for parse in parses:
             if self.executor:
                 parse.denotation = self.executor(parse.semantics)
             parse.score = score(parse, self.feature_fn, self.weights)
-        return sorted(parses, key=lambda parse: parse.score, reverse=True)
+        
+        parses = sorted(parses, key=lambda parse: parse.score, reverse=True)
+        if get_chart:
+            return parses, chart
+        else:
+            return parses
