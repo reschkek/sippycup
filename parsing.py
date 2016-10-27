@@ -28,6 +28,10 @@ from types import FunctionType
 MAX_CELL_CAPACITY = 1000  # upper bound on number of parses in one chart cell
 
 
+# Custom exception class
+class ParseRuleException(Exception):
+    """Custom exception that prevents a parse from being added to chart"""
+
 # Rule =========================================================================
 
 class Rule:
@@ -275,6 +279,7 @@ def parse_input(grammar, input, get_chart=False):
     tokens = input.split()
     # TODO: populate chart with tokens?  that way everything is in the chart
     chart = defaultdict(list)
+    parses = chart[(0, len(tokens))]
     for j in range(1, len(tokens) + 1):
         for i in range(j - 1, -1, -1):
             apply_annotators(grammar, chart, tokens, i, j)
@@ -282,13 +287,19 @@ def parse_input(grammar, input, get_chart=False):
             apply_binary_rules(grammar, chart, i, j)
             apply_unary_rules(grammar, chart, i, j)
     # print_chart(chart)
-    parses = chart[(0, len(tokens))]
     if grammar.start_symbol:
         parses = [parse for parse in parses if parse.rule.lhs == grammar.start_symbol]
     if get_chart:
         return parses, chart
     else:
         return parses
+
+def add_to_chart(chart, i, j, *args):
+    try:
+        parse = Parse(*args)
+        chart[(i, j)].append(parse)
+    except ParseRuleException:
+        return
 
 def apply_annotators(grammar, chart, tokens, i, j):
     """
@@ -300,14 +311,14 @@ def apply_annotators(grammar, chart, tokens, i, j):
                 if not check_capacity(chart, i, j):
                     return
                 rule = Rule(category, tuple(tokens[i:j]), semantics)
-                chart[(i, j)].append(Parse(rule, tokens[i:j]))
+                add_to_chart(chart, i, j, rule, tokens[i:j])
 
 def apply_lexical_rules(grammar, chart, tokens, i, j):
     """Add parses to chart cell (i, j) by applying lexical rules."""
     for rule in grammar.lexical_rules[tuple(tokens[i:j])]:
         if not check_capacity(chart, i, j):
             return
-        chart[(i, j)].append(Parse(rule, tokens[i:j]))
+        add_to_chart(chart, i, j, rule, tokens[i:j])
 
 def apply_binary_rules(grammar, chart, i, j):
     """Add parses to chart cell (i, j) by applying binary rules."""
@@ -316,7 +327,7 @@ def apply_binary_rules(grammar, chart, i, j):
             for rule in grammar.binary_rules[(parse_1.rule.lhs, parse_2.rule.lhs)]:
                 if not check_capacity(chart, i, j):
                     return
-                chart[(i, j)].append(Parse(rule, [parse_1, parse_2]))
+                add_to_chart(chart, i, j, rule, [parse_1, parse_2])
 
 def apply_unary_rules(grammar, chart, i, j):
     """Add parses to chart cell (i, j) by applying unary rules."""
@@ -329,7 +340,7 @@ def apply_unary_rules(grammar, chart, i, j):
         for rule in grammar.unary_rules[(parse.rule.lhs,)]:
             if not check_capacity(chart, i, j):
                 return
-            chart[(i, j)].append(Parse(rule, [parse]))
+            add_to_chart(chart, i, j, rule, [parse])
 
 # Important for catching e.g. unary cycles.
 max_cell_capacity_hits = 0
