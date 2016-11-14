@@ -30,8 +30,8 @@ __email__ = "See the author's website"
 
 from collections import defaultdict
 
-from metrics import standard_metrics, SemanticsAccuracyMetric
-from scoring import Model
+from sippycup.metrics import standard_metrics, SemanticsAccuracyMetric
+from sippycup.scoring import Model
 
 class Domain:
     def train_examples(self):

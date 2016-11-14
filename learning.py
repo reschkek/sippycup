@@ -10,8 +10,8 @@ import math
 import random
 from collections import defaultdict, Counter
 
-from metrics import SemanticsAccuracyMetric, DenotationAccuracyMetric
-from scoring import Model, score
+from sippycup.metrics import SemanticsAccuracyMetric, DenotationAccuracyMetric
+from sippycup.scoring import Model, score
 
 
 def latent_sgd(

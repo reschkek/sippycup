@@ -9,11 +9,11 @@ __email__ = "See the author's website"
 from collections import defaultdict
 import random
 
-from metrics import SemanticsAccuracyMetric, NumParsesMetric, standard_metrics
-from example import Example
-from learning import latent_sgd
-from parsing import is_cat, parse_to_pretty_string, print_grammar
-from scoring import Model, rule_features
+from sippycup.metrics import SemanticsAccuracyMetric, NumParsesMetric, standard_metrics
+from sippycup.example import Example
+from sippycup.learning import latent_sgd
+from sippycup.parsing import is_cat, parse_to_pretty_string, print_grammar
+from sippycup.scoring import Model, rule_features
 
 # TODO: comment
 def print_sample_outcomes(model=None,
