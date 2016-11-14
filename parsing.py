@@ -22,6 +22,8 @@ __email__ = "See the author's website"
 import math
 from collections import defaultdict, Iterable
 from itertools import product
+from operator import itemgetter
+import random
 from six import StringIO
 from types import FunctionType
 
@@ -170,7 +172,7 @@ def parse_to_pretty_string(parse, indent=0, show_sem=False):
 # Grammar ======================================================================
 
 class Grammar:
-    def __init__(self, rules=[], annotators=[], start_symbol='$ROOT'):
+    def __init__(self, rules=[], annotators=[], start_symbol='$ROOT', scorer=None):
         self.categories = set()
         self.lexical_rules = defaultdict(list)
         self.unary_rules = defaultdict(list)
@@ -181,12 +183,12 @@ class Grammar:
             add_rule(self, rule)
         print('Created grammar with %d rules' % len(rules))
 
-    def parse_input(self, input, get_chart=False):
+    def parse_input(self, input, get_chart=False, scorer=None):
         """
         Returns the list of parses for the given input which can be derived
         using this grammar. Optionally returns the parse chart.
         """
-        return parse_input(self, input, get_chart=get_chart)
+        return parse_input(self, input, get_chart=get_chart, scorer=scorer)
 
 def add_rule(grammar, rule):
     if contains_optionals(rule):
@@ -271,10 +273,14 @@ def add_n_ary_rule(grammar, rule):
     add_rule(grammar, Rule(rule.lhs, (rule.rhs[0], category),
                            lambda sems: apply_semantics(rule, [sems[0]] + sems[1])))
 
-def parse_input(grammar, input, get_chart=False):
+def parse_input(grammar, input, get_chart=False, scorer=None):
     """
     Returns the list of parses for the given input which can be derived using
     the given grammar. Optionally returns the parse chart.
+
+    If `scorer` is not None, then it is assumed to be a function from
+    Parse objects to floats, where larger values correspond to better
+    parses.
     """
     tokens = input.split()
     # TODO: populate chart with tokens?  that way everything is in the chart
@@ -282,10 +288,10 @@ def parse_input(grammar, input, get_chart=False):
     parses = chart[(0, len(tokens))]
     for j in range(1, len(tokens) + 1):
         for i in range(j - 1, -1, -1):
-            apply_annotators(grammar, chart, tokens, i, j)
-            apply_lexical_rules(grammar, chart, tokens, i, j)
-            apply_binary_rules(grammar, chart, i, j)
-            apply_unary_rules(grammar, chart, i, j)
+            apply_annotators(grammar, chart, tokens, i, j, scorer=scorer)
+            apply_lexical_rules(grammar, chart, tokens, i, j, scorer=scorer)
+            apply_binary_rules(grammar, chart, i, j, scorer=scorer)
+            apply_unary_rules(grammar, chart, i, j, scorer=scorer)
     # print_chart(chart)
     if grammar.start_symbol:
         parses = [parse for parse in parses if parse.rule.lhs == grammar.start_symbol]
@@ -294,53 +300,77 @@ def parse_input(grammar, input, get_chart=False):
     else:
         return parses
 
-def add_to_chart(chart, i, j, *args):
-    try:
-        parse = Parse(*args)
-        chart[(i, j)].append(parse)
-    except ParseRuleException:
-        return
+def add_to_chart(chart, i, j, parse):
+    """Adds `parse` to the `(i,j)` cell of `chart`."""
+    chart[(i, j)].append(parse)
 
-def apply_annotators(grammar, chart, tokens, i, j):
+def safe_add_parse_to_list(parses, *args):
+    """Convenience function for adding parses to a list, catching
+    and ignoring specialized exceptions as we go.
+    """
+    try:
+        parses.append(Parse(*args))
+    except ParseRuleException:
+        return None
+
+def add_parses_to_chart(chart, i, j, parses, scorer=None):
+    """Manage the process of adding parses to the chart depending on
+    whether there is a scorer. If there is a scorer, then all the
+    parses are scored and only the top `MAX_CELL_CAPACITY` of them are
+    added to the chart. If there is no scorer, then the list of all
+    parses is shuffled and then `MAX_CELL_CAPACITY` of them are chosen
+    randomly to add to the chart.
+    """
+    if scorer:
+        scored = [(scorer(parse), parse) for parse in parses]
+        scored = sorted(scored, reverse=True, key=itemgetter(0))
+        parses = [p for s, p in scored]
+    else:
+        random.shuffle(parses)
+    parses = parses[: MAX_CELL_CAPACITY]
+    for parse in parses:
+        add_to_chart(chart, i, j, parse)
+
+def apply_annotators(grammar, chart, tokens, i, j, scorer=None):
     """
     Add parses to chart cell (i, j) by applying annotators.
     """
     if hasattr(grammar, 'annotators'):
+        parses = []
         for annotator in grammar.annotators:
             for category, semantics in annotator.annotate(tokens[i:j]):
-                if not check_capacity(chart, i, j):
-                    return
                 rule = Rule(category, tuple(tokens[i:j]), semantics)
-                add_to_chart(chart, i, j, rule, tokens[i:j])
+                safe_add_parse_to_list(parses, rule, tokens[i:j])
+        add_parses_to_chart(chart, i, j, parses, scorer=scorer)
 
-def apply_lexical_rules(grammar, chart, tokens, i, j):
+def apply_lexical_rules(grammar, chart, tokens, i, j, scorer=None):
     """Add parses to chart cell (i, j) by applying lexical rules."""
+    parses = []
     for rule in grammar.lexical_rules[tuple(tokens[i:j])]:
-        if not check_capacity(chart, i, j):
-            return
-        add_to_chart(chart, i, j, rule, tokens[i:j])
+        safe_add_parse_to_list(parses, rule, tokens[i:j])
+    add_parses_to_chart(chart, i, j, parses, scorer=scorer)
 
-def apply_binary_rules(grammar, chart, i, j):
+def apply_binary_rules(grammar, chart, i, j, scorer=None):
     """Add parses to chart cell (i, j) by applying binary rules."""
+    parses = []
     for k in range(i + 1, j):
         for parse_1, parse_2 in product(chart[(i, k)], chart[(k, j)]):
             for rule in grammar.binary_rules[(parse_1.rule.lhs, parse_2.rule.lhs)]:
-                if not check_capacity(chart, i, j):
-                    return
-                add_to_chart(chart, i, j, rule, [parse_1, parse_2])
+                safe_add_parse_to_list(parses, rule, [parse_1, parse_2])
+    add_parses_to_chart(chart, i, j, parses, scorer=scorer)
 
-def apply_unary_rules(grammar, chart, i, j):
+def apply_unary_rules(grammar, chart, i, j, scorer=None):
     """Add parses to chart cell (i, j) by applying unary rules."""
     # Note that the last line of this method can add new parses to chart[(i,
     # j)], the list over which we are iterating.  Because of this, we
     # essentially get unary closure "for free".  (However, if the grammar
     # contains unary cycles, we'll get stuck in a loop, which is one reason for
     # check_capacity().)
+    parses = []
     for parse in chart[(i, j)]:
         for rule in grammar.unary_rules[(parse.rule.lhs,)]:
-            if not check_capacity(chart, i, j):
-                return
-            add_to_chart(chart, i, j, rule, [parse])
+            safe_add_parse_to_list(parses, rule, [parse])
+    add_parses_to_chart(chart, i, j, parses, scorer=scorer)
 
 # Important for catching e.g. unary cycles.
 max_cell_capacity_hits = 0

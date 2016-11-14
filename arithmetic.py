@@ -9,12 +9,12 @@ __email__ = "See the author's website"
 from collections import defaultdict
 from numbers import Number
 
-from domain import Domain
-from example import Example
-from experiment import evaluate_for_domain, evaluate_dev_examples_for_domain, train_test, train_test_for_domain, interact, learn_lexical_semantics, generate
-from metrics import DenotationAccuracyMetric
-from parsing import Grammar, Rule
-from scoring import rule_features
+from sippycup.domain import Domain
+from sippycup.example import Example
+from sippycup.experiment import evaluate_for_domain, evaluate_dev_examples_for_domain, train_test, train_test_for_domain, interact, learn_lexical_semantics, generate
+from sippycup.metrics import DenotationAccuracyMetric
+from sippycup.parsing import Grammar, Rule
+from sippycup.scoring import rule_features
 
 # ArithmeticDomain =============================================================
 
