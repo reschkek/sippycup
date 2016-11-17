@@ -172,7 +172,7 @@ def parse_to_pretty_string(parse, indent=0, show_sem=False):
 # Grammar ======================================================================
 
 class Grammar:
-    def __init__(self, rules=[], annotators=[], start_symbol='$ROOT', scorer=None):
+    def __init__(self, rules=[], annotators=[], start_symbol='$ROOT'):
         self.categories = set()
         self.lexical_rules = defaultdict(list)
         self.unary_rules = defaultdict(list)
