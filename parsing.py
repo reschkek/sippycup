@@ -366,11 +366,11 @@ def apply_unary_rules(grammar, chart, i, j, scorer=None):
     # essentially get unary closure "for free".  (However, if the grammar
     # contains unary cycles, we'll get stuck in a loop, which is one reason for
     # check_capacity().)
-    parses = []
     for parse in chart[(i, j)]:
+        parses = []
         for rule in grammar.unary_rules[(parse.rule.lhs,)]:
             safe_add_parse_to_list(parses, rule, [parse])
-    add_parses_to_chart(chart, i, j, parses, scorer=scorer)
+        add_parses_to_chart(chart, i, j, parses, scorer=scorer)
 
 # Important for catching e.g. unary cycles.
 max_cell_capacity_hits = 0
