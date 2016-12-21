@@ -183,12 +183,14 @@ class Grammar:
             add_rule(self, rule)
         print('Created grammar with %d rules' % len(rules))
 
-    def parse_input(self, input, get_chart=False, scorer=None):
+    def parse_input(self, input, get_chart=False, scorer=None,
+                    rules_to_inject=None):
         """
         Returns the list of parses for the given input which can be derived
         using this grammar. Optionally returns the parse chart.
         """
-        return parse_input(self, input, get_chart=get_chart, scorer=scorer)
+        return parse_input(self, input, get_chart=get_chart, scorer=scorer,
+                           rules_to_inject=rules_to_inject)
 
 def add_rule(grammar, rule):
     if contains_optionals(rule):
@@ -273,7 +275,15 @@ def add_n_ary_rule(grammar, rule):
     add_rule(grammar, Rule(rule.lhs, (rule.rhs[0], category),
                            lambda sems: apply_semantics(rule, [sems[0]] + sems[1])))
 
-def parse_input(grammar, input, get_chart=False, scorer=None):
+
+def apply_grammar_rules(grammar, chart, tokens, i, j, scorer=None):
+    apply_annotators(grammar, chart, tokens, i, j, scorer=scorer)
+    apply_lexical_rules(grammar, chart, tokens, i, j, scorer=scorer)
+    apply_binary_rules(grammar, chart, i, j, scorer=scorer)
+    apply_unary_rules(grammar, chart, i, j, scorer=scorer)
+
+def parse_input(grammar, input, get_chart=False, rules_to_inject=None,
+                scorer=None):
     """
     Returns the list of parses for the given input which can be derived using
     the given grammar. Optionally returns the parse chart.
@@ -282,17 +292,20 @@ def parse_input(grammar, input, get_chart=False, scorer=None):
     Parse objects to floats, where larger values correspond to better
     parses.
     """
+    # Create new grammar with new rules to inject
+    grammar_to_inject = None
+    if rules_to_inject is not None:
+        grammar_to_inject = Grammar(rules=rules_to_inject)
     tokens = input.split()
     # TODO: populate chart with tokens?  that way everything is in the chart
     chart = defaultdict(list)
     parses = chart[(0, len(tokens))]
     for j in range(1, len(tokens) + 1):
         for i in range(j - 1, -1, -1):
-            apply_annotators(grammar, chart, tokens, i, j, scorer=scorer)
-            apply_lexical_rules(grammar, chart, tokens, i, j, scorer=scorer)
-            apply_binary_rules(grammar, chart, i, j, scorer=scorer)
-            apply_unary_rules(grammar, chart, i, j, scorer=scorer)
-    # print_chart(chart)
+            apply_grammar_rules(grammar, chart, tokens, i, j, scorer=scorer)
+            if grammar_to_inject is not None:
+                apply_grammar_rules(grammar_to_inject, chart, tokens, i, j,
+                                scorer=scorer)
     if grammar.start_symbol:
         parses = [parse for parse in parses if parse.rule.lhs == grammar.start_symbol]
     if get_chart:
