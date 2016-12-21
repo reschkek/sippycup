@@ -45,16 +45,16 @@ class Model:
 
     # TODO: Should this become a static function, to match style of parsing.py?
     def parse_input(self, input, get_chart=False, scorer=None,
-                    rules_to_inject=None):
+                    dynamic_annotators=None):
         if get_chart:
             parses, chart = self.grammar.parse_input(input,
                                                      get_chart=get_chart,
                                                      scorer=scorer,
-                                                     rules_to_inject=rules_to_inject)
+                                                     dynamic_annotators=dynamic_annotators)
         else:
             parses = self.grammar.parse_input(input, get_chart=get_chart,
                                               scorer=scorer,
-                                              rules_to_inject=rules_to_inject)
+                                              dynamic_annotators=dynamic_annotators)
 
         for parse in parses:
             if self.executor:
