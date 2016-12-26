@@ -183,12 +183,14 @@ class Grammar:
             add_rule(self, rule)
         print('Created grammar with %d rules' % len(rules))
 
-    def parse_input(self, input, get_chart=False, scorer=None):
+    def parse_input(self, input, get_chart=False, scorer=None,
+                    dynamic_annotators=None):
         """
         Returns the list of parses for the given input which can be derived
         using this grammar. Optionally returns the parse chart.
         """
-        return parse_input(self, input, get_chart=get_chart, scorer=scorer)
+        return parse_input(self, input, get_chart=get_chart, scorer=scorer,
+                           dynamic_annotators=dynamic_annotators)
 
 def add_rule(grammar, rule):
     if contains_optionals(rule):
@@ -273,7 +275,16 @@ def add_n_ary_rule(grammar, rule):
     add_rule(grammar, Rule(rule.lhs, (rule.rhs[0], category),
                            lambda sems: apply_semantics(rule, [sems[0]] + sems[1])))
 
-def parse_input(grammar, input, get_chart=False, scorer=None):
+
+def apply_grammar_rules(grammar, chart, tokens, i, j, scorer=None):
+    if hasattr(grammar, 'annotators'):
+        apply_annotators(grammar.annotators, chart, tokens, i, j, scorer=scorer)
+    apply_lexical_rules(grammar, chart, tokens, i, j, scorer=scorer)
+    apply_binary_rules(grammar, chart, i, j, scorer=scorer)
+    apply_unary_rules(grammar, chart, i, j, scorer=scorer)
+
+def parse_input(grammar, input, get_chart=False, dynamic_annotators=None,
+                scorer=None):
     """
     Returns the list of parses for the given input which can be derived using
     the given grammar. Optionally returns the parse chart.
@@ -288,11 +299,10 @@ def parse_input(grammar, input, get_chart=False, scorer=None):
     parses = chart[(0, len(tokens))]
     for j in range(1, len(tokens) + 1):
         for i in range(j - 1, -1, -1):
-            apply_annotators(grammar, chart, tokens, i, j, scorer=scorer)
-            apply_lexical_rules(grammar, chart, tokens, i, j, scorer=scorer)
-            apply_binary_rules(grammar, chart, i, j, scorer=scorer)
-            apply_unary_rules(grammar, chart, i, j, scorer=scorer)
-    # print_chart(chart)
+            apply_grammar_rules(grammar, chart, tokens, i, j, scorer=scorer)
+            if dynamic_annotators is not None:
+                apply_annotators(dynamic_annotators, chart, tokens, i, j,
+                                 scorer=scorer)
     if grammar.start_symbol:
         parses = [parse for parse in parses if parse.rule.lhs == grammar.start_symbol]
     if get_chart:
@@ -331,17 +341,16 @@ def add_parses_to_chart(chart, i, j, parses, scorer=None):
     for parse in parses:
         add_to_chart(chart, i, j, parse)
 
-def apply_annotators(grammar, chart, tokens, i, j, scorer=None):
+def apply_annotators(annotators, chart, tokens, i, j, scorer=None):
     """
     Add parses to chart cell (i, j) by applying annotators.
     """
-    if hasattr(grammar, 'annotators'):
-        parses = []
-        for annotator in grammar.annotators:
-            for category, semantics in annotator.annotate(tokens[i:j]):
-                rule = Rule(category, tuple(tokens[i:j]), semantics)
-                safe_add_parse_to_list(parses, rule, tokens[i:j])
-        add_parses_to_chart(chart, i, j, parses, scorer=scorer)
+    parses = []
+    for annotator in annotators:
+        for category, semantics in annotator.annotate(tokens[i:j]):
+            rule = Rule(category, tuple(tokens[i:j]), semantics)
+            safe_add_parse_to_list(parses, rule, tokens[i:j])
+    add_parses_to_chart(chart, i, j, parses, scorer=scorer)
 
 def apply_lexical_rules(grammar, chart, tokens, i, j, scorer=None):
     """Add parses to chart cell (i, j) by applying lexical rules."""

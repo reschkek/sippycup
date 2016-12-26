@@ -44,11 +44,17 @@ class Model:
         self.executor = executor
 
     # TODO: Should this become a static function, to match style of parsing.py?
-    def parse_input(self, input, get_chart=False, scorer=None):
+    def parse_input(self, input, get_chart=False, scorer=None,
+                    dynamic_annotators=None):
         if get_chart:
-            parses, chart = self.grammar.parse_input(input, get_chart=get_chart, scorer=scorer)
+            parses, chart = self.grammar.parse_input(input,
+                                                     get_chart=get_chart,
+                                                     scorer=scorer,
+                                                     dynamic_annotators=dynamic_annotators)
         else:
-            parses = self.grammar.parse_input(input, get_chart=get_chart, scorer=scorer)
+            parses = self.grammar.parse_input(input, get_chart=get_chart,
+                                              scorer=scorer,
+                                              dynamic_annotators=dynamic_annotators)
 
         for parse in parses:
             if self.executor:
