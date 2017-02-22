@@ -347,7 +347,7 @@ def apply_annotators(annotators, chart, tokens, i, j, scorer=None):
     """
     parses = []
     for annotator in annotators:
-        for category, semantics in annotator.annotate(tokens[i:j]):
+        for category, semantics in annotator.annotate_span(tokens, i, j):
             rule = Rule(category, tuple(tokens[i:j]), semantics)
             safe_add_parse_to_list(parses, rule, tokens[i:j])
     add_parses_to_chart(chart, i, j, parses, scorer=scorer)

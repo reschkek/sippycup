@@ -12,6 +12,23 @@ class Annotator:
         """Returns a list of pairs, each a category and a semantic representation."""
         return []
 
+    def annotate_span(self, tokens, i, j):
+        """Annotate subsequence tokens[i:j].
+
+        This default implementation calls `self.annotate(tokens[i:j]).
+        Subclasses may override this behavior. There are two common
+        use cases:
+
+            i) The annotator needs access to the context around the
+               subsequence.
+           ii) Some preprocess has produced an annotation for a particular
+               span, not a sequence of tokens.
+
+        Returns a list of pairs, each a category and a semantic representation.
+        """
+        return self.annotate(tokens[i:j])
+
+
 class TokenAnnotator(Annotator):
     def annotate(self, tokens):
         if len(tokens) == 1:
@@ -36,5 +53,5 @@ if __name__ == '__main__':
     tokens = 'four score and 30 years ago'.split()
     for j in range(1, len(tokens) + 1):
         for i in range(j - 1, -1, -1):
-            annotations = [a for anno in annotators for a in anno.annotate(tokens[i:j])]
+            annotations = [a for anno in annotators for a in anno.annotate_span(tokens, i, j)]
             print('(%d, %d): %s => %s' % (i, j, ' '.join(tokens[i:j]), annotations))
