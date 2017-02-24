@@ -299,10 +299,10 @@ def parse_input(grammar, input, get_chart=False, dynamic_annotators=None,
     parses = chart[(0, len(tokens))]
     for j in range(1, len(tokens) + 1):
         for i in range(j - 1, -1, -1):
-            apply_grammar_rules(grammar, chart, tokens, i, j, scorer=scorer)
             if dynamic_annotators is not None:
                 apply_annotators(dynamic_annotators, chart, tokens, i, j,
                                  scorer=scorer)
+            apply_grammar_rules(grammar, chart, tokens, i, j, scorer=scorer)
     if grammar.start_symbol:
         parses = [parse for parse in parses if parse.rule.lhs == grammar.start_symbol]
     if get_chart:
@@ -347,7 +347,7 @@ def apply_annotators(annotators, chart, tokens, i, j, scorer=None):
     """
     parses = []
     for annotator in annotators:
-        for category, semantics in annotator.annotate(tokens[i:j]):
+        for category, semantics in annotator.annotate_span(tokens, i, j):
             rule = Rule(category, tuple(tokens[i:j]), semantics)
             safe_add_parse_to_list(parses, rule, tokens[i:j])
     add_parses_to_chart(chart, i, j, parses, scorer=scorer)
