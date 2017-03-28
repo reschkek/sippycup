@@ -21,8 +21,8 @@ __email__ = "See the author's website"
 
 import math
 from collections import defaultdict, Iterable
+import heapq
 from itertools import product
-from operator import itemgetter
 import random
 from six import StringIO
 from types import FunctionType
@@ -331,13 +331,13 @@ def add_parses_to_chart(chart, i, j, parses, scorer=None):
     parses is shuffled and then `MAX_CELL_CAPACITY` of them are chosen
     randomly to add to the chart.
     """
-    if scorer:
-        scored = [(scorer(parse), parse) for parse in parses]
-        scored = sorted(scored, reverse=True, key=itemgetter(0))
-        parses = [p for s, p in scored]
-    else:
-        random.shuffle(parses)
-    parses = parses[: MAX_CELL_CAPACITY]
+    if len(parses) > MAX_CELL_CAPACITY:
+        print("Chart cell capacity ({}) exceeded by {} for cell {}.".format(
+            MAX_CELL_CAPACITY, len(parses) - MAX_CELL_CAPACITY, (i, j)))
+        if scorer:
+            parses = heapq.nlargest(MAX_CELL_CAPACITY, parses, key=scorer)
+        else:
+            parses = random.sample(parses, MAX_CELL_CAPACITY)
     for parse in parses:
         add_to_chart(chart, i, j, parse)
 
