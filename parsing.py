@@ -19,6 +19,7 @@ __version__ = "0.9"
 __maintainer__ = "Bill MacCartney"
 __email__ = "See the author's website"
 
+import sys
 import math
 from collections import defaultdict, Iterable
 import heapq
@@ -106,10 +107,16 @@ class Parse:
         self.score = float('NaN')
         self.denotation = None
         validate_parse(self)
+        self.syntax_str = None
+
 
     def __str__(self):
-        child_strings = [str(child) for child in self.children]
-        return '(%s %s)' % (self.rule.lhs, ' '.join(child_strings))
+        if not self.syntax_str:
+            child_strings = [str(child) for child in self.children]
+            self.syntax_str = '({} {})'.format(self.rule.lhs, ' '.join(child_strings))
+            return self.syntax_str
+        else:
+            return '({} {})'.format(self.rule.lhs, self.syntax_str)
 
 def validate_parse(parse):
     assert isinstance(parse.rule, Rule), 'Not a Rule: %s' % parse.rule
