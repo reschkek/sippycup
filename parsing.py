@@ -114,9 +114,7 @@ class Parse:
         if not self.syntax_str:
             child_strings = [str(child) for child in self.children]
             self.syntax_str = '({} {})'.format(self.rule.lhs, ' '.join(child_strings))
-            return self.syntax_str
-        else:
-            return '({} {})'.format(self.rule.lhs, self.syntax_str)
+        return self.syntax_str
 
 def validate_parse(parse):
     assert isinstance(parse.rule, Rule), 'Not a Rule: %s' % parse.rule
