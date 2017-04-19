@@ -19,7 +19,6 @@ __version__ = "0.9"
 __maintainer__ = "Bill MacCartney"
 __email__ = "See the author's website"
 
-import sys
 import math
 from collections import defaultdict, Iterable
 import heapq
