@@ -106,14 +106,15 @@ class Parse:
         self.score = float('NaN')
         self.denotation = None
         validate_parse(self)
-        self.syntax_str = None
+        self._syntax_str = None
 
 
     def __str__(self):
-        if not self.syntax_str:
+        if not self._syntax_str:
             child_strings = [str(child) for child in self.children]
-            self.syntax_str = '({} {})'.format(self.rule.lhs, ' '.join(child_strings))
-        return self.syntax_str
+            self._syntax_str = '({} {})'.format(
+                self.rule.lhs, ' '.join(child_strings))
+        return self._syntax_str
 
 def validate_parse(parse):
     assert isinstance(parse.rule, Rule), 'Not a Rule: %s' % parse.rule
