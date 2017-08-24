@@ -59,7 +59,11 @@ class Model:
         for parse in parses:
             if self.executor:
                 parse.denotation = self.executor(parse.semantics)
-            parse.score = score(parse, self.feature_fn, self.weights)
+            if scorer:
+                parse.score = scorer(parse)
+            # If no scorer passed, back-off to default inner product scorer
+            else:
+                parse.score = score(parse, self.feature_fn, self.weights)
 
         parses = sorted(parses, key=lambda parse: parse.score, reverse=True)
         if get_chart:
